@@ -23,10 +23,12 @@ So this driver reuses EgisTec's own matcher — **without this project shipping 
 ## How it works
 
 - **Capture** is fully native (no vendor code): the EGIS/SIGE bulk protocol, 70×57 frames.
-- **Matching** is delegated to the vendor engine DLL, loaded **in-process** by a small PE
-  loader (~190 import shims, fake TEB in `%gs`). The loader calls the DLL's
-  `WbioQueryEngineInterface` export to get the WBF engine vtable, then drives its
-  extract/verify slots (`AcceptSampleData`/`Verify`) on host, on plaintext frames.
+- **Matching** uses the vendor engine's code, but the **DLL is not loaded at runtime** —
+  `eh577-engine.so` is. At *build* time, `gen_egimage` re-lays-out your downloaded DLL's
+  sections into a page-aligned image embedded in `eh577-engine.so`. At *runtime*, the driver
+  `dlopen`s that self-contained `.so`; a small in-process loader (~190 shims, fake TEB in
+  `%gs`) maps the embedded engine image, calls its `WbioQueryEngineInterface` export for the
+  WBF vtable, and drives `AcceptSampleData`/`Verify` on host, on plaintext frames.
 - **The engine runs file-backed**, so under SELinux it is `file execute` (a normal library
   permission), **not `execmem`**. `fprintd` stays fully confined — no execmem grant, no
   policy hole, no helper process. `/proc/PID/maps` shows the engine mapped `r-xp`, zero

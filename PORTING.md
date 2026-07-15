@@ -53,19 +53,29 @@ the open matchers didn't.
 
 ## 3. Architecture
 
+Build time (once, on your machine):
+
 ```
- USB (libusb/gusb)          in-process PE loader              libfprint
+ downloaded DLL ──gen_egimage──► page-aligned image ──.incbin──► eh577-engine.so
+ (EgisTouchFPEngine0577.dll)      (egimage.bin)                  (self-contained)
+```
+
+Runtime (the DLL is gone — only the .so is loaded):
+
+```
+ USB (libusb/gusb)          eh577-engine.so (in-process)         libfprint
  ┌───────────────┐   frame  ┌────────────────────────┐  tmpl  ┌──────────────┐
- │ EH577 capture ├─────────►│ vendor matcher DLL      ├───────►│ FpDevice     │
- │ EGIS/SIGE     │  70×57   │ (WbioQueryEngineIface)  │ accept │ FPI_PRINT_RAW│
+ │ EH577 capture ├─────────►│ embedded engine image  ├───────►│ FpDevice     │
+ │ EGIS/SIGE     │  70×57   │ + PE loader/shims       │ accept │ FPI_PRINT_RAW│
  └───────────────┘          └────────────────────────┘        └──────────────┘
 ```
 
 - The driver is a **non-image `FpDevice`** (like the match-on-chip drivers) storing opaque
   templates via `FPI_PRINT_RAW`. It is *not* an `FpImageDevice`, so libfprint's NBIS path
   never runs.
-- Capture is fully native (no vendor code). Matching is delegated to the vendor engine,
-  loaded in-process.
+- Capture is fully native (no vendor code). Matching is delegated to the vendor engine's
+  code, **embedded in `eh577-engine.so`** and run in-process. The DLL itself is consumed at
+  build time and is not loaded (or needed) at runtime.
 
 ---
 
@@ -93,11 +103,21 @@ Init is a deterministic ~99-command sequence (not adaptive); frames come back pl
 
 ## 5. The in-process PE loader
 
-The vendor matcher is a Windows x64 DLL (`EgisTouchFPEngine0577.dll`, single export
-`WbioQueryEngineInterface`, image base `0x180000000`). We run it on Linux without Wine:
+The vendor matcher's code originates in a Windows x64 DLL (`EgisTouchFPEngine0577.dll`, single
+export `WbioQueryEngineInterface`, image base `0x180000000`), but **we never load the DLL at
+runtime**, and no Wine. Two stages:
 
-- Map the PE's sections at their virtual addresses; set up a **fake Windows TEB in `%gs`**
-  (glibc uses `%fs`, so `%gs` is free); run the static-CRT `DllMain`.
+- **Build (`gen_egimage`):** read the downloaded DLL and copy its PE sections to their virtual
+  offsets into a **page-aligned image**, which is `.incbin`-embedded into `eh577-engine.so`.
+  (The raw DLL can't be mapped executable as-is — §9 — which is *why* it's re-laid-out here,
+  and what makes the runtime mapping file-backed.)
+- **Runtime (the `.so`'s constructor):** the driver `dlopen`s `eh577-engine.so`; its
+  constructor mmaps the embedded image **file-backed** at `0x180000000`, sets up a **fake
+  Windows TEB in `%gs`** (glibc uses `%fs`, so `%gs` is free), fixes up imports through the
+  shim table, and runs the static-CRT `DllMain`. The DLL is not present or needed at runtime —
+  the `.so` is self-contained.
+
+Details:
 - **~190 import shims** (189 registered) back kernel32/advapi32/shlwapi/user32/gdi32/gdiplus/setupapi with
   native equivalents (heap → a tracked-idempotent allocator that tolerates the CRT's
   double-frees; `VirtualAlloc` → `mmap`; `CryptGenRandom` → `getrandom`; GDI/GdiPlus →
