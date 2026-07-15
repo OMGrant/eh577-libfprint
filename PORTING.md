@@ -45,9 +45,9 @@ entirely.
 The vendor engine (its own strings: skeleton/minutiae matcher, `Verify_Skeleton` /
 `Verify_Orininal`) is what this driver uses. Two honesty notes on how far we validated it:
 
-- **On real hardware:** an *earlier* build of the same vendor matcher passed a live enroll →
-  separate-session verify → wrong-finger-reject. The pinned **2019 Catalog build (what ships)
-  has not yet been through that on-device loop** — its on-device check is your own enroll.
+- **On real hardware:** the pinned **2019 Catalog build (what ships) enrolls and verifies** on
+  the device — confirmed through KDE/`fprintd` on a Beelink GTR9 Pro. (An earlier build of the
+  same matcher additionally showed a separate-session verify and a wrong-finger reject.)
 - **Offline:** the 2019 build scores **33/33 genuine, 0/17 impostor**, but that's a
   **same-session** set (one continuous press), **not** the cross-session corpus the open
   matchers above failed on, and we ran **no** FAR/FRR at scale.
