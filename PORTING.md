@@ -41,13 +41,17 @@ invitation if you want to take it on; it would let this driver drop the vendor b
 entirely.
 
 The vendor engine (its own strings: skeleton/minutiae matcher, `Verify_Skeleton` /
-`Verify_Orininal`) is what this driver uses, and it works in real on-device use — enroll,
-then verify in a *separate* session, matches; a different finger is rejected. As an **offline**
-check it scores **33/33 genuine, 0/17 impostor** — but be honest about that number: it's on a
-**same-session** capture set (one continuous press), **not** the harder cross-session corpus
-the open matchers above failed on, and we ran **no** independent FAR/FRR at scale. Treat it as
-*"the vendor matcher works in practice; we did not benchmark it,"* not as proof it clears a bar
-the open matchers didn't.
+`Verify_Orininal`) is what this driver uses. Two honesty notes on how far we validated it:
+
+- **On real hardware:** an *earlier* build of the same vendor matcher passed a live enroll →
+  separate-session verify → wrong-finger-reject. The pinned **2019 Catalog build (what ships)
+  has not yet been through that on-device loop** — its on-device check is your own enroll.
+- **Offline:** the 2019 build scores **33/33 genuine, 0/17 impostor**, but that's a
+  **same-session** set (one continuous press), **not** the cross-session corpus the open
+  matchers above failed on, and we ran **no** FAR/FRR at scale.
+
+Treat it as *"the vendor matcher works in practice; we have not benchmarked it,"* not as proof
+it clears a bar the open matchers didn't.
 
 ---
 
@@ -143,14 +147,15 @@ Instead, the vendor matcher's code is baked into a native ELF shared object
 (`eh577-engine.so`) whose executable pages are **file-backed** and mapped **read-only +
 execute** from that `.so`. Under SELinux a read-only file-backed executable mapping is
 `file execute` on the file's type — the same permission `fprintd` already has for
-libraries — **not** `execmem`. Proof, from `/proc/PID/maps` while matching:
+libraries — **not** `execmem`. The engine's `.text` maps `r-xp` **file-backed from the `.so`**,
+with only anon `rw-p` data alongside — no `rwxp` anywhere. Observed in our offline test harness
+(`eg_so_test`), and the installed `.so` maps the same way under `fprintd` (checked during the
+SELinux integration):
 
 ```
-180001000-18003f000 r-xp ... /usr/lib/libfprint-2/eh577-engine.so   ← file-backed, r-x
-180000000-180001000 rw-p ...   (anon: IAT / writable data only)
-```
-
-Zero `rwxp` anywhere. The `.so` is labeled `textrel_shlib_t` (which every domain may
+180001000-18003f000 r-xp  …/eh577-engine.so     ← file-backed, r-x (the vendor code)
+180000000-180001000 rw-p  [anon]                ← IAT / writable data only
+``` The `.so` is labeled `textrel_shlib_t` (which every domain may
 execute) via a `semanage fcontext` rule the installer adds. **No `execmem` grant, no policy
 hole, no helper process, SELinux stays enforcing.** This is the same technique the
 sanctioned libfprint-TOD proprietary-blob drivers (Synaptics/Goodix/Elan) use — a native
@@ -220,7 +225,8 @@ honest copyright/distribution discussion; this is not legal advice.
   press looks spectacular — we saw genuine 0.84 vs impostor 0.06, ~0% EER — and then
   **collapses** the instant you score it on a *separate lift-and-replace* press (genuine
   ~0.34 vs impostor ~0.26, EER ~35%). Always evaluate cross-session, finger lifted between
-  enroll and verify. Every open matcher we tried passed the fake test and failed the real one.
+  enroll and verify. Correlation (POC) sailed through the fake test and failed the real one —
+  that's the trap. (SIGFM was different: it failed even same-session.)
 - Don't re-run the open-matcher search hoping for a different answer at 70×57 (§2). The open
   path is deep-descriptor ML, full stop.
 

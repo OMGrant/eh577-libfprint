@@ -8,21 +8,23 @@ bring-up relied on:
   for the FocalTech FT9201, and the origin of the *method* this driver reuses:
   a native `FpDevice` libfprint driver that runs the vendor's own matcher in-process
   (match-on-host, plaintext frames) via a small PE loader + import shims, without shipping
-  any vendor blob. Read it first; this repo mirrors its structure. Cross-linked both ways.
-- **Marco Trevisan (3v1n0)** — libfprint maintainer; the match-on-host method, guidance, and
-  **SIGFM** (the SIFT-based small-sensor matcher we evaluated — it doesn't reach this sensor's
-  70×57 geometry, which is *why* the vendor matcher is reused; see below).
+  any vendor blob. Read it first; this repo mirrors its structure and links to it.
+- **Marco Trevisan (3v1n0)** — libfprint maintainer; the match-on-host method and guidance,
+  and for pointing us at SIGFM.
+- **SIGFM** — Matthieu Charette, Natasha England-Elbro, Timur Mangliev (`@mpi3d`); libfprint
+  MR !530/!418. The SIFT-based small-sensor matcher we evaluated; it doesn't reach this
+  sensor's 70×57 geometry, which is *why* the vendor matcher is reused (see below).
 - **uunicorn** — the `synaWudfBioUsb-sandbox` Wine harness used to trace the vendor Windows
   driver and lift the EGIS/SIGE command protocol.
 - **championswimmer** — earlier EH577 community work; the non-secure raw-capture protocol
   (a useful protocol datapoint).
 
 ## Why the vendor matcher (and not an open one)
-The EH577 is a tiny (70×57, ~6–8 ridges) image-out sensor. We empirically confirmed that
-open matchers do **not** discriminate reliably at this size — NBIS/BOZORTH3, whole-image
-phase-correlation, and SIGFM/SIFT all collapse cross-session on real captures (rank-1 at or
-near chance). That is the same wall that drove both this driver and FT9201 to reuse the
-vendor's own matcher. A fully-open matcher for sensors this small is a deep-descriptor ML
+The EH577 is a tiny (70×57, ~6–8 ridges) image-out sensor. On real cross-session captures,
+open matchers don't hold up: phase-correlation (POC) drops to EER ~35% (66% rank-1 — signal,
+but unusable) and SIGFM/SIFT to near chance; minutiae matching (NBIS/BOZORTH3) isn't viable at
+all (reasoned from the minutiae math, not run). Same wall that drove both this driver and
+FT9201 to the vendor's own matcher. A fully-open matcher this small is a deep-descriptor ML
 problem, not correlation tuning — noted for anyone who wants to take it on.
 
 ## Key external resources

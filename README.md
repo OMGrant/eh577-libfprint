@@ -9,13 +9,15 @@ so `fprintd`/PAM fingerprint login works on Linux.
 
 ## Why the vendor matcher
 
-The EH577 is a tiny (70×57 px, ~6–8 ridges) image-out sensor. We measured, on a real
-lift-and-replace corpus, that **generic open matchers do not discriminate reliably at this
-size** — NBIS/BOZORTH3, whole-image phase correlation, and SIGFM/SIFT all collapse
-cross-session (down to rank-1 identification at or near chance). That's the same wall that
-drove the sibling [ft9201-libfprint](https://github.com/OMGrant/ft9201-libfprint) to reuse
-the vendor matcher. A genuinely open matcher at this size is a deep-descriptor ML problem,
-not correlation tuning. Full data and reasoning: **[PORTING.md](PORTING.md#2-why-the-vendor-matcher-the-part-people-will-push-back-on)**.
+The EH577 is a tiny (70×57 px, ~6–8 ridges) image-out sensor. On a real lift-and-replace
+corpus, **generic open matchers don't hold up cross-session at this size**: whole-image phase
+correlation (POC) degrades to EER ~35% (still 66% rank-1 — some signal, but not usable), and
+SIGFM/SIFT falls to near chance (23–42% rank-1, ~33% is chance). Minutiae matching
+(NBIS/BOZORTH3) isn't viable at all — too few minutiae — though that one we reasoned out
+rather than ran. It's the same wall that drove the sibling
+[ft9201-libfprint](https://github.com/OMGrant/ft9201-libfprint) to reuse the vendor matcher.
+An open matcher at this size is a deep-descriptor ML problem, not correlation tuning. Full
+data: **[PORTING.md](PORTING.md#2-why-the-vendor-matcher-the-part-people-will-push-back-on)**.
 
 So this driver reuses EgisTec's own matcher — **without this project shipping a byte of it**
 (see below).
