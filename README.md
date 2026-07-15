@@ -21,9 +21,6 @@ rather than ran. It's the same wall that drove the sibling
 An open matcher at this size is a deep-descriptor ML problem, not correlation tuning. Full
 data: **[PORTING.md](PORTING.md#2-why-the-vendor-matcher-the-part-people-will-push-back-on)**.
 
-So this driver reuses EgisTec's own matcher — **without this project shipping a byte of it**
-(see below).
-
 ## How it works
 
 - **Capture** is fully native (no vendor code): the EGIS/SIGE bulk protocol, 70×57 frames.
