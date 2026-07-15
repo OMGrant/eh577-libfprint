@@ -168,6 +168,78 @@ honest copyright/distribution discussion; this is not legal advice.
   side-by-side) → `eh577-install.sh`.
 - The driver: `eh577.c` (+ `eh577_init.h`), talking to the engine via `eg_engine_shim.c`
   (a `dlopen` forwarder) → `eh577-engine.so` (`eh577_engine_so.c` + the embedded image).
-- Porting to another Egis sensor: the loader + shims are reusable; you'll re-derive the
-  capture opcodes, the frame geometry, and re-pin the Catalog package (and check it's a
-  software, non-SGX build).
+---
+
+## 9. Gotchas & dead ends (this is where our wasted weeks went)
+
+**Device / USB**
+- **Never call `reset()` or `set_configuration()`** — gusb *or* pyusb. Both re-enumerate the
+  EH577 off the bus, and it does **not** come back without a physical power cycle. It's the
+  soldered power button, so you can't unplug it. We wedged it **3 times** before this stuck.
+  Only `get_active_configuration()` (read-only) + `claim_interface(0)`; recover a stall with
+  drain + release/reclaim, never reset (`clear_halt` is insufficient).
+- **gusb's Python bindings return zeros for IN transfers.** We burned *days* on a phantom
+  "device is dormant / config-0 mismatch / needs a magic arming step" investigation that was
+  entirely this read bug — the device was fine and putting real SIGE data on the wire the
+  whole time (proven with `usbmon`). Use pyusb or gusb's C API; when a read looks empty,
+  trust `usbmon` over the binding.
+- **Fully drain large frame responses.** A `0x64` read returns 3990 B; read only 512 and the
+  ~3.5 KB residue wedges the *next* command's write (it times out). championswimmer's "read
+  budget / recycle every 6 frames" workaround was a *misunderstanding of this* — there is no
+  budget, just drain to a short packet. Init is a deterministic ~99-command sequence, not
+  adaptive; blind-replaying a recording desyncs it.
+
+**Matcher evaluation — the expensive trap**
+- **Same-session frames will lie to you.** A matcher scored on frames from one continuous
+  press looks spectacular — we saw genuine 0.84 vs impostor 0.06, ~0% EER — and then
+  **collapses** the instant you score it on a *separate lift-and-replace* press (genuine
+  ~0.34 vs impostor ~0.26, EER ~35%). Always evaluate cross-session, finger lifted between
+  enroll and verify. Every open matcher we tried passed the fake test and failed the real one.
+- Don't re-run the open-matcher search hoping for a different answer at 70×57 (§2). The open
+  path is deep-descriptor ML, full stop.
+
+**PE loader / engine**
+- **The heap shim must be tracked-idempotent.** The Egis static CRT double-frees during init,
+  so naive `free()` wrappers make glibc `abort()`. A leak-only heap dodges the abort but
+  leaks ~2.7 MB per verify and OOMs a long-running fprintd. Track live pointers, free for
+  real, make double/foreign frees no-ops.
+- **Size the storage/sensor stub vtables to ≥ 0x200 and fill every slot.** The engine's
+  Verify path dispatches a storage method at vtable offset **0x100** — one slot *past* a
+  0x100 array. In a standalone harness that past-end read lands in adjacent harmless memory
+  and Verify survives; inside libfprint the layout differs, the slot is garbage, and you get a
+  `call 0x1` **SIGSEGV that only reproduces in the daemon**. That one cost a coredump-forensics
+  session.
+- **You cannot `mmap` the raw DLL as executable.** Its PE FileAlignment (0x200) ≠ page size
+  and `.text` starts at file offset 0x400, so the on-disk bytes aren't a runnable memory
+  image. That's *why* the engine is re-laid-out into `eh577-engine.so` — and why file-backed
+  (no-execmem) execution requires that re-layout rather than the original file.
+
+**Sourcing from the Catalog**
+- **Classify the engine DLL's imports before trusting a package.** Of the 7 `1c7a:0577`
+  Catalog packages, **4 use an Intel SGX enclave** (`sgx_urts`/`sgx_uae_service`) and will not
+  run on Linux. We grabbed the *first* match — an SGX one — and started shimming toward a dead
+  end before checking. Pick a **pure-software** build (no `sgx`, no `bcrypt` imports).
+- **Newer is not better here.** The 2019 build is *simpler* than 2020+ (no SGX enclave, no
+  SDCP `SecureDataExchange` handshake to neutralize). Don't assume you want the latest.
+- **Catalog scraping:** paginate with `Search.aspx?q=…&p=N` (GET, 0-indexed) — the
+  POST/viewstate "next page" returns HTTP 500. The full-text search matches update **GUIDs**,
+  not hardware IDs, so you can't find a package by searching `1c7a`/`0577`; enumerate and read
+  each `ScopedViewInline` page's Supported Hardware IDs.
+
+**SELinux**
+- Executing loaded-in-memory code from `fprintd` needs `execmem` (weakens the auth daemon) or
+  a policy grant; a memfd is `tmpfs_t`, which `fprintd_t` can't execute either. A
+  **file-backed `.so`** sidesteps both — read-only file-backed exec is `file execute`, which
+  `fprintd` already has for libraries. There is no fourth option: no-carve ⇒ in-memory ⇒
+  execmem or a helper process. We kept it to a labeled `.so` (no execmem, no helper).
+
+## 10. What's reusable for other Egis / small "Windows Hello" sensors
+- The **in-process PE loader + shim table** (`eh577_engine_so.c`) — vendor-agnostic; a
+  different DLL just needs its imports covered (start from the generic fallback's log).
+- The **file-backed-`.so` SELinux technique** — applies to any in-process proprietary matcher
+  run under a confined daemon.
+- The **Catalog fetch + import-classify** recipe (§7) — any Egis PID, any OEM.
+- The **match-on-host + `WINBIO_BIR` + WBF engine vtable** plumbing — standard across EgisTec
+  WBF engine adapters.
+- You will re-derive: the capture opcodes and frame geometry (per sensor), and re-pin the
+  Catalog package (confirming it's a non-SGX software build).
