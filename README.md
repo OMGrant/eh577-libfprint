@@ -56,13 +56,6 @@ What the design does to **reduce** legal exposure — it does **not** eliminate 
 - **§117 posture** — a device owner adapting a program to run on their own hardware, used in
   no other manner.
 
-**The honest caveat, because "clean" would be a lie:** this is **not legal advice** and the
-law here is **unsettled**. Running a vendor's Windows driver under a custom loader — and
-especially *publishing a tool that does* — is a genuine gray area. The steps above reduce
-exposure; they don't eliminate it, and the **Microsoft Update Catalog's terms** and
-**EgisTec's EULA** are yours to check. **Use at your own risk, and only with a sensor you
-own.** Keep any fork blob-free (see below).
-
 [b43-fwcutter]: https://packages.debian.org/stable/b43-fwcutter
 [ttf-mscorefonts-installer]: https://packages.debian.org/stable/ttf-mscorefonts-installer
 
