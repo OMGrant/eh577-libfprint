@@ -21,9 +21,11 @@ porting another small Egis/"Windows Hello" sensor, most of this transfers.
 
 ## 2. Why the vendor matcher (the part people will push back on)
 
-We did *not* want to ship a proprietary matcher. We reused it because we empirically
-established that **no generic open matcher discriminates reliably at 70×57**. Measured on
-a real lift-and-replace corpus (multiple fingers, separate enrollment/verify sessions):
+We did *not* want to ship a proprietary matcher. We reused it because **no generic open
+matcher discriminates reliably at 70×57**. **POC and SIGFM we measured ourselves** on a real
+lift-and-replace corpus (three fingers, separate enroll/verify sessions). **NBIS we did not
+run** — that row is reasoned from the minutiae arithmetic and libfprint's own `egis0570`
+precedent, not our own test:
 
 | Matcher | What it does | Result at 70×57 |
 |---|---|---|
@@ -38,10 +40,14 @@ to the vendor matcher too. A genuinely open matcher for a sensor this small is a
 invitation if you want to take it on; it would let this driver drop the vendor blob
 entirely.
 
-By contrast, the vendor engine (skeleton/minutiae matcher, `Verify_Skeleton` /
-`Verify_Orininal`) gives **33/33 genuine accept, 0/17 impostor reject** on the same corpus.
-Note: that is a small-corpus sanity result, **not** an independently-validated FAR/FRR at
-scale — treat the security level as "vendor-grade matcher, unaudited by us."
+The vendor engine (its own strings: skeleton/minutiae matcher, `Verify_Skeleton` /
+`Verify_Orininal`) is what this driver uses, and it works in real on-device use — enroll,
+then verify in a *separate* session, matches; a different finger is rejected. As an **offline**
+check it scores **33/33 genuine, 0/17 impostor** — but be honest about that number: it's on a
+**same-session** capture set (one continuous press), **not** the harder cross-session corpus
+the open matchers above failed on, and we ran **no** independent FAR/FRR at scale. Treat it as
+*"the vendor matcher works in practice; we did not benchmark it,"* not as proof it clears a bar
+the open matchers didn't.
 
 ---
 
