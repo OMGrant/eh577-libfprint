@@ -4,6 +4,11 @@ A native [libfprint](https://fprint.freedesktop.org/) driver for the **EgisTec E
 (USB `1c7a:0577`) fingerprint sensor — the "Windows Hello only" reader on the **Beelink
 GTR9 Pro** (and other machines) — so `fprintd`/PAM fingerprint login works on Linux.
 
+<p align="center">
+  <img src="docs/sensor.png" alt="EgisTec EH577 fingerprint reader on the Beelink GTR9 Pro" width="360"><br>
+  <sub>The EH577 — the fingerprint pad on the corner of the Beelink GTR9 Pro chassis (Beelink product image).</sub>
+</p>
+
 ## Why the vendor matcher
 
 The EH577 is a tiny (70×57 px, ~6–8 ridges) image-out sensor. On a real lift-and-replace
