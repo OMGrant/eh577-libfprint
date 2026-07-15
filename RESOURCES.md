@@ -16,8 +16,13 @@ bring-up relied on:
   sensor's 70×57 geometry, which is *why* the vendor matcher is reused (see below).
 - **uunicorn** — the `synaWudfBioUsb-sandbox` Wine harness used to trace the vendor Windows
   driver and lift the EGIS/SIGE command protocol.
-- **championswimmer** — earlier EH577 community work; the non-secure raw-capture protocol
-  (a useful protocol datapoint).
+- **[championswimmer/libfprint-eh577](https://github.com/championswimmer/libfprint-eh577)**
+  — the earlier community Linux driver effort for *this exact sensor* (EgisTec EH577,
+  `1c7a:0577`), and our prior art. It mapped the non-secure raw-capture EGIS/SIGE protocol —
+  read it for the device protocol. (Its "read budget / recycle-every-6-frames" recovery loop
+  was a misread of the undrained-frame gotcha; see [PORTING §9](PORTING.md#9-gotchas--dead-ends-this-is-where-our-wasted-weeks-went).)
+  Same match-on-host shape as this driver; its Windows package ships the same
+  `EgisTouchFPEngine0577.dll` engine adapter (no VBS enclave).
 
 ## Why the vendor matcher (and not an open one)
 The EH577 is a tiny (70×57, ~6–8 ridges) image-out sensor. On real cross-session captures,

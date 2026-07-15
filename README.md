@@ -105,8 +105,11 @@ This repo contains **no** EgisTec or Microsoft binaries and **no** fingerprint d
 `windows-driver/`, all `*.dll`/`*.cab`, `egimage.bin`, `eh577-engine.so`, and any captures
 are `.gitignore`d and must never be committed. Keep it that way in any fork.
 
-## Credits
+## Credits & related projects
 
-Built on the [ft9201-libfprint](https://github.com/OMGrant/ft9201-libfprint) method; see
-[RESOURCES.md](RESOURCES.md) for full credits (3v1n0, uunicorn, championswimmer) and the
-external resources used.
+Built on the [ft9201-libfprint](https://github.com/OMGrant/ft9201-libfprint) method. The
+direct prior art for *this* sensor is
+**[championswimmer/libfprint-eh577](https://github.com/championswimmer/libfprint-eh577)** — the
+earlier EH577 (`1c7a:0577`) Linux driver effort, which mapped the raw-capture EGIS/SIGE
+protocol. Full credits (championswimmer, 3v1n0, uunicorn, the SIGFM authors) and external
+resources: **[RESOURCES.md](RESOURCES.md)**.
