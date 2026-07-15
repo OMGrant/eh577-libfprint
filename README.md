@@ -33,28 +33,20 @@ So this driver reuses EgisTec's own matcher — **without this project shipping 
   policy hole, no helper process. `/proc/PID/maps` shows the engine mapped `r-xp`, zero
   `rwxp`.
 - We target the **2019 Catalog build**, a self-contained software matcher (no SGX enclave,
-  no secure-channel handshake), so it runs on any Linux machine and nothing is circumvented.
+  no secure-channel handshake), so it runs on any Linux machine.
 
 Architecture, protocol, loader internals, the SELinux model, and Catalog sourcing are all in
 **[PORTING.md](PORTING.md)**.
 
-## Copyright & distribution
+## Copyright
 
-**This project contains no EgisTec or Microsoft binaries.** It's a tool that fetches *your
-own* copy of your device's driver from Microsoft's Update Catalog and adapts it locally to
-run on Linux. The loader and shims are ours (LGPL-2.1-or-later); it's an interoperability
-tool for a sensor **you own**, and it does not include or relicense any EgisTec code.
-
-What the design does to **reduce** legal exposure — it does **not** eliminate it:
-
-- **No redistribution of the DLL** — build-time fetch only, from Microsoft's official Update
-  Catalog (pinned update ID + SHA-256). The adapted engine `.so` is built on your machine and
-  never leaves it. (The [ttf-mscorefonts-installer] / [b43-fwcutter] model.)
-- **No DMCA §1201 circumvention** — it targets the **2019 pure-software Catalog build**: no
-  SDCP secure channel, no SGX enclave, so there is no technological protection measure to
-  circumvent.
-- **§117 posture** — a device owner adapting a program to run on their own hardware, used in
-  no other manner.
+This project contains **no EgisTec or Microsoft binaries**. `EgisTouchFPEngine0577.dll` is
+EgisTec's property and is **not distributed here** — the build fetches your own copy from
+Microsoft's Update Catalog (pinned update ID + SHA-256) and adapts it locally to run on Linux;
+the adapted engine `.so` is built on your machine and never leaves it (the
+[ttf-mscorefonts-installer] / [b43-fwcutter] model). The driver, loader, and shims are ours,
+**LGPL-2.1-or-later**. This is an interoperability tool for a sensor **you own**; it does not
+include or relicense any EgisTec code.
 
 [b43-fwcutter]: https://packages.debian.org/stable/b43-fwcutter
 [ttf-mscorefonts-installer]: https://packages.debian.org/stable/ttf-mscorefonts-installer

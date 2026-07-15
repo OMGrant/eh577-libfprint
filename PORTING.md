@@ -185,10 +185,9 @@ re-pinning:
   IDs → `DownloadDialog.aspx` POST `updateIDs=[{...}]` returns a stable
   `download.windowsupdate.com` `.cab` URL.
 
-**Why the 2019 build matters beyond "it runs":** because it predates SDCP, there is no
-technological protection measure in the path — nothing is being circumvented. That keeps
-the DMCA §1201 anti-circumvention question off the table entirely. See the README for the
-honest copyright/distribution discussion; this is not legal advice.
+**Why the 2019 build, specifically:** it predates the SDCP secure channel and the SGX enclave,
+so it's a plain software matcher — it runs on Linux with nothing to neutralize, and the loader
+needs no handshake patches.
 
 ---
 
