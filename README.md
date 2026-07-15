@@ -1,8 +1,8 @@
 # EH577 fingerprint driver for Linux
 
 A native [libfprint](https://fprint.freedesktop.org/) driver for the **EgisTec EH577**
-(USB `1c7a:0577`) fingerprint sensor — the "Windows Hello only" reader on many laptops —
-so `fprintd`/PAM fingerprint login works on Linux.
+(USB `1c7a:0577`) fingerprint sensor — the "Windows Hello only" reader on the **Beelink
+GTR9 Pro** (and other machines) — so `fprintd`/PAM fingerprint login works on Linux.
 
 ## Why the vendor matcher
 
