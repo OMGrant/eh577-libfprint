@@ -48,7 +48,7 @@ Scripts: `eval/sep_test.py`, `eval/blpoc_design.py`, `eval/corpus_eval.py` (corr
 Phase-only correlation is translation-invariant and contrast-invariant — the natural first
 try for ridge texture.
 
-### Same-session looks spectacular — and it's a trap
+### Same-session results are misleadingly good
 
 On frames from a single press, POC separates three distinct fingers cleanly (peak height,
 `sep_test.py`):
@@ -69,7 +69,7 @@ bit-for-bit:
 | r=24 | 0.966 | 0.256 | ~22 |
 | r=48 | 0.887 | 0.156 | **~30** |
 
-This is the trap: it's all one press. The finger never lifted.
+The catch: it's all one press — the finger never lifted.
 
 ### Cross-session collapses
 

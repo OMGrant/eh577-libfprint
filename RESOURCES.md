@@ -24,7 +24,7 @@ bring-up relied on:
   Same match-on-host shape as this driver; its Windows package ships the same
   `EgisTouchFPEngine0577.dll` engine adapter (no VBS enclave).
 
-## Why the vendor matcher (and not an open one)
+## Why the vendor matcher
 The EH577 is a tiny (70×57, ~6–8 ridges) image-out sensor. On real cross-session captures,
 open matchers don't hold up: phase-correlation (POC) drops to EER ~35% (66% rank-1 — signal,
 but unusable) and SIGFM/SIFT to near chance; minutiae matching (NBIS/BOZORTH3) isn't viable at

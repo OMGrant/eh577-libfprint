@@ -19,7 +19,7 @@ porting another small Egis/"Windows Hello" sensor, most of this transfers.
 
 ---
 
-## 2. Why the vendor matcher (the part people will push back on)
+## 2. Why the vendor matcher
 
 We did *not* want to ship a proprietary matcher. We reused it because **no generic open
 matcher discriminates reliably at 70×57**. **POC and SIGFM we measured ourselves** on a real
@@ -30,7 +30,7 @@ precedent, not our own test:
 | Matcher | What it does | Result at 70×57 |
 |---|---|---|
 | **NBIS** (MINDTCT/BOZORTH3) | minutiae pairing | Not viable — ~1–3 minutiae in 10 mm²; libfprint's own sibling `egis0570` comments its NBIS threshold as a "security issue … what a joke" |
-| **Whole-image POC/BLPOC** | phase correlation | Looks great *same-session* (genuine 0.84 vs impostor 0.06) but **collapses cross-session**: genuine ~0.34 vs impostor ~0.26, **EER ≈ 35%**, rank-1 ID **66%** (chance 33%). Placement-dependent. |
+| **Whole-image POC/BLPOC** | phase correlation | Strong *same-session* (genuine 0.84 vs impostor 0.06) but **collapses cross-session**: genuine ~0.34 vs impostor ~0.26, **EER ≈ 35%**, rank-1 ID **66%** (chance 33%). Placement-dependent. |
 | **SIGFM / SIFT** (OpenCV keypoints + ratio + geometry) | descriptor matching | **At chance.** Default SIFT finds ~1 keypoint/frame; even tuned + upscaled + CLAHE, rank-1 ID **23–42%** (chance 33%), EER ≈ 50%. |
 
 Full methodology, all numbers, and the eval scripts: **[docs/matcher-evaluation.md](docs/matcher-evaluation.md)**.
@@ -202,7 +202,7 @@ needs no handshake patches.
   (a `dlopen` forwarder) → `eh577-engine.so` (`eh577_engine_so.c` + the embedded image).
 ---
 
-## 9. Gotchas & dead ends (this is where our wasted weeks went)
+## 9. Gotchas & dead ends
 
 **Device / USB**
 - **Never call `reset()` or `set_configuration()`** — gusb *or* pyusb. Both re-enumerate the
@@ -210,7 +210,7 @@ needs no handshake patches.
   soldered power button, so you can't unplug it. We wedged it **3 times** before this stuck.
   Only `get_active_configuration()` (read-only) + `claim_interface(0)`; recover a stall with
   drain + release/reclaim, never reset (`clear_halt` is insufficient).
-- **gusb's Python bindings return zeros for IN transfers.** We burned *days* on a phantom
+- **gusb's Python bindings return zeros for IN transfers.** We spent days on a phantom
   "device is dormant / config-0 mismatch / needs a magic arming step" investigation that was
   entirely this read bug — the device was fine and putting real SIGE data on the wire the
   whole time (proven with `usbmon`). Use pyusb or gusb's C API; when a read looks empty,
@@ -221,13 +221,12 @@ needs no handshake patches.
   budget, just drain to a short packet. Init is a deterministic ~99-command sequence, not
   adaptive; blind-replaying a recording desyncs it.
 
-**Matcher evaluation — the expensive trap**
-- **Same-session frames will lie to you.** A matcher scored on frames from one continuous
-  press looks spectacular — we saw genuine 0.84 vs impostor 0.06, ~0% EER — and then
-  **collapses** the instant you score it on a *separate lift-and-replace* press (genuine
-  ~0.34 vs impostor ~0.26, EER ~35%). Always evaluate cross-session, finger lifted between
-  enroll and verify. Correlation (POC) sailed through the fake test and failed the real one —
-  that's the trap. (SIGFM was different: it failed even same-session.)
+**Matcher evaluation**
+- **Same-session frames are misleading.** A matcher scored on frames from one continuous press
+  looks excellent — genuine 0.84 vs impostor 0.06, ~0% EER — and then **collapses** when scored
+  on a *separate lift-and-replace* press (genuine ~0.34 vs impostor ~0.26, EER ~35%). Always
+  evaluate cross-session, with the finger lifted between enroll and verify. Correlation (POC)
+  passed the same-session test and failed cross-session; SIGFM failed even same-session.
 - Don't re-run the open-matcher search hoping for a different answer at 70×57 (§2). The open
   path is deep-descriptor ML, full stop.
 
@@ -240,8 +239,7 @@ needs no handshake patches.
   Verify path dispatches a storage method at vtable offset **0x100** — one slot *past* a
   0x100 array. In a standalone harness that past-end read lands in adjacent harmless memory
   and Verify survives; inside libfprint the layout differs, the slot is garbage, and you get a
-  `call 0x1` **SIGSEGV that only reproduces in the daemon**. That one cost a coredump-forensics
-  session.
+  `call 0x1` **SIGSEGV that only reproduces in the daemon**. Diagnosed by core-dump analysis.
 - **You cannot `mmap` the raw DLL as executable.** Its PE FileAlignment (0x200) ≠ page size
   and `.text` starts at file offset 0x400, so the on-disk bytes aren't a runnable memory
   image. That's *why* the engine is re-laid-out into `eh577-engine.so` — and why file-backed
