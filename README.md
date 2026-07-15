@@ -1,44 +1,70 @@
 # EH577 fingerprint driver for Linux
 
 A native [libfprint](https://fprint.freedesktop.org/) driver for the **EgisTec EH577**
-(USB `1c7a:0577`) fingerprint sensor — the "Windows Hello only" reader found on many
-laptops. It gets `fprintd`/PAM fingerprint login working on Linux.
+(USB `1c7a:0577`) fingerprint sensor — the "Windows Hello only" reader on many laptops —
+so `fprintd`/PAM fingerprint login works on Linux.
 
-## How it works (and why it's legally clean)
+> **Read [Copyright & distribution](#copyright--distribution) before using this.** It's a
+> bring-your-own-copy tool, and the legal status is unsettled — this is not legal advice.
 
-The EH577 is a small (70×57) image-out sensor. Generic open matchers (NBIS/BOZORTH3,
-correlation, SIFT/keypoint) do **not** discriminate reliably at this size, so this
-driver reuses the vendor's own matcher — **without this project ever shipping a byte of
-EgisTec's code**:
+## Why the vendor matcher
 
-- **Bring-your-own-copy.** At build time, `fetch-engine-dll.sh` downloads the EH577
-  driver from **Microsoft's official Update Catalog** (a pinned, checksum-verified
-  package) *onto your machine* and extracts the matcher DLL. This is the same model as
-  Debian's `ttf-mscorefonts-installer`: we distribute only open tooling; each user
-  fetches their own licensed copy from the authoritative source.
-- **Local adaptation.** Your machine re-lays-out that DLL into a native ELF shared
-  object (`eh577-engine.so`) and runs its matcher in-process via a small PE loader. This
-  is the copy owner's essential step to use a program they own (17 U.S.C. §117); the
-  adapted binary is personal and is never redistributed.
-- **You must own an EH577 device.** The driver package is licensed for use on that
-  hardware. Don't run this unless you own the sensor.
+The EH577 is a tiny (70×57 px, ~6–8 ridges) image-out sensor. We measured, on a real
+lift-and-replace corpus, that **generic open matchers do not discriminate reliably at this
+size** — NBIS/BOZORTH3, whole-image phase correlation, and SIGFM/SIFT all collapse
+cross-session (down to rank-1 identification at or near chance). That's the same wall that
+drove the sibling [ft9201-libfprint](https://github.com/OMGrant/ft9201-libfprint) to reuse
+the vendor matcher. A genuinely open matcher at this size is a deep-descriptor ML problem,
+not correlation tuning. Full data and reasoning: **[PORTING.md](PORTING.md#2-why-the-vendor-matcher-the-part-people-will-push-back-on)**.
 
-The specific Catalog package pinned is the **2019 build**, which is a self-contained
-software matcher — no SGX enclave, no secure-channel handshake — so it runs on any Linux
-machine.
+So this driver reuses EgisTec's own matcher — **without this project shipping a byte of it**
+(see below).
 
-## Security
+## How it works
 
-- The engine's executable pages are **file-backed** (`eh577-engine.so`), so under SELinux
-  they are `file execute`, **not** `execmem`. `fprintd` stays fully confined — no execmem
-  grant, no policy hole, no helper process. Verified: `/proc/PID/maps` shows the engine
-  mapped `r-xp`, zero `rwxp`.
-- The distro's `libfprint` is never modified; ours installs side-by-side and `fprintd` is
-  pointed at it via a systemd drop-in.
+- **Capture** is fully native (no vendor code): the EGIS/SIGE bulk protocol, 70×57 frames.
+- **Matching** is delegated to the vendor engine DLL, loaded **in-process** by a small PE
+  loader (~180 import shims, fake TEB in `%gs`), running its `WbioQueryEngineInterface`
+  matcher on host, on plaintext frames.
+- **The engine runs file-backed**, so under SELinux it is `file execute` (a normal library
+  permission), **not `execmem`**. `fprintd` stays fully confined — no execmem grant, no
+  policy hole, no helper process. `/proc/PID/maps` shows the engine mapped `r-xp`, zero
+  `rwxp`.
+- We target the **2019 Catalog build**, a self-contained software matcher (no SGX enclave,
+  no secure-channel handshake), so it runs on any Linux machine and nothing is circumvented.
+
+Architecture, protocol, loader internals, the SELinux model, and Catalog sourcing are all in
+**[PORTING.md](PORTING.md)**.
+
+## Copyright & distribution
+
+**This project contains no EgisTec or Microsoft binaries and downloads nothing you don't
+already have the right to.** It's a tool that fetches *your own* copy of a driver you're
+licensed to run on *your own* device (the [b43-fwcutter] / [ttf-mscorefonts-installer]
+pattern) and adapts it locally to run on Linux.
+
+**This is not legal advice, and the status of running — let alone publicly distributing — a
+tool that loads a proprietary Windows DLL on Linux is genuinely unsettled.** What the design
+does to stay on the defensible side:
+
+- **Never redistributes the vendor DLL.** You download your own copy from Microsoft's
+  official Update Catalog; the adapted engine `.so` is built on your machine and never
+  leaves it.
+- **Uses the pre-SDCP 2019 build**, which carries no technological protection measure — so
+  nothing is circumvented (no DMCA §1201 question).
+- The local re-layout of a copy you own, to run it on your own machine "in no other manner,"
+  is the kind of adaptation **17 U.S.C. §117** contemplates for the owner of a copy.
+
+What it does **not** resolve: the Microsoft Update Catalog's terms on automated download, and
+EgisTec's driver EULA. **You must own an EgisTec EH577 device, and you use this at your own
+risk.** Keep any fork blob-free (see below).
+
+[b43-fwcutter]: https://packages.debian.org/stable/b43-fwcutter
+[ttf-mscorefonts-installer]: https://packages.debian.org/stable/ttf-mscorefonts-installer
 
 ## Requirements
 
-- An EgisTec EH577 (`1c7a:0577`) sensor that you own.
+- An EgisTec EH577 (`1c7a:0577`) sensor **that you own**.
 - `curl`, `p7zip` (`7z`), `gcc`, `meson`/`ninja`, `git`, and libfprint build deps.
   - Fedora: `sudo dnf install -y curl p7zip meson ninja-build git gcc && sudo dnf builddep -y libfprint`
   - Debian/Ubuntu: `sudo apt install curl p7zip-full meson ninja-build git build-essential && sudo apt build-dep libfprint`
@@ -49,13 +75,13 @@ machine.
 bash setup.sh
 ```
 
-This downloads your copy of the vendor matcher, builds the engine + libfprint driver, and
-installs it (SELinux stays enforcing). Then:
+Downloads your copy of the vendor matcher, builds the engine + libfprint driver, installs it
+(SELinux stays enforcing; distro `libfprint` untouched — ours installs side-by-side). Then:
 
 ```sh
-fprintd-enroll        # sustained hold ~15s; reposition for coverage if it asks
+fprintd-enroll        # sustained hold ~15s; reposition if it asks for coverage
 fprintd-verify        # brief hold
-sudo authselect enable-feature with-fingerprint   # optional: add fingerprint to login
+sudo authselect enable-feature with-fingerprint   # optional (Fedora): add to login
 ```
 
 ## Uninstall
@@ -64,11 +90,16 @@ sudo authselect enable-feature with-fingerprint   # optional: add fingerprint to
 sudo bash eh577-install.sh --uninstall
 ```
 
-Reversible; the distro `libfprint` was never touched. (If you enabled login:
-`sudo authselect disable-feature with-fingerprint`.)
+Reversible; the distro `libfprint` was never touched.
 
 ## What is NOT distributed
 
-This repository contains **no** EgisTec or Microsoft binaries. `windows-driver/`, all
-`*.dll`/`*.cab`, `egimage.bin`, `eh577-engine.so`, and captured fingerprint data are
-`.gitignore`d and must never be committed. If you fork or mirror this, keep it that way.
+This repo contains **no** EgisTec or Microsoft binaries and **no** fingerprint data.
+`windows-driver/`, all `*.dll`/`*.cab`, `egimage.bin`, `eh577-engine.so`, and any captures
+are `.gitignore`d and must never be committed. Keep it that way in any fork.
+
+## Credits
+
+Built on the [ft9201-libfprint](https://github.com/OMGrant/ft9201-libfprint) method; see
+[RESOURCES.md](RESOURCES.md) for full credits (3v1n0, uunicorn, championswimmer) and the
+external resources used.
