@@ -18,8 +18,9 @@ SIGFM/SIFT falls to near chance (23–42% rank-1, ~33% is chance). Minutiae matc
 (NBIS/BOZORTH3) isn't viable at all — too few minutiae — though that one we reasoned out
 rather than ran. It's the same wall that drove the sibling
 [ft9201-libfprint](https://github.com/OMGrant/ft9201-libfprint) to reuse the vendor matcher.
-An open matcher at this size is a deep-descriptor ML problem, not correlation tuning. Full
-data: **[PORTING.md](PORTING.md#2-why-the-vendor-matcher-the-part-people-will-push-back-on)**.
+An open matcher at this size is a deep-descriptor ML problem, not correlation tuning. **The
+full evaluation — methodology, every result, and the scripts (SIGFM included) — is in
+[docs/matcher-evaluation.md](docs/matcher-evaluation.md).**
 
 ## How it works
 

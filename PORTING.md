@@ -33,6 +33,8 @@ precedent, not our own test:
 | **Whole-image POC/BLPOC** | phase correlation | Looks great *same-session* (genuine 0.84 vs impostor 0.06) but **collapses cross-session**: genuine ~0.34 vs impostor ~0.26, **EER ≈ 35%**, rank-1 ID **66%** (chance 33%). Placement-dependent. |
 | **SIGFM / SIFT** (OpenCV keypoints + ratio + geometry) | descriptor matching | **At chance.** Default SIFT finds ~1 keypoint/frame; even tuned + upscaled + CLAHE, rank-1 ID **23–42%** (chance 33%), EER ≈ 50%. |
 
+Full methodology, all numbers, and the eval scripts: **[docs/matcher-evaluation.md](docs/matcher-evaluation.md)**.
+
 The same wall drove the sibling [ft9201-libfprint](https://github.com/OMGrant/ft9201-libfprint)
 to the vendor matcher too. A genuinely open matcher for a sensor this small is a
 **fixed-length deep-descriptor (ML)** problem — DeepPrint / FDD (arXiv 2311.18576) / IFViT
