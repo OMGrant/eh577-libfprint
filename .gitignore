@@ -1,0 +1,15 @@
+# NEVER commit vendor (EgisTec/Microsoft) bytes — users download their own copy.
+windows-driver/
+*.dll
+*.cab
+*.img
+egimage.bin
+eh577-engine.so
+# biometric capture data — private
+captures/
+*.raw
+# build artifacts / cloned upstream
+libfprint/
+*.o
+gen_egimage
+*.log
