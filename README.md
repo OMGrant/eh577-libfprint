@@ -4,9 +4,6 @@ A native [libfprint](https://fprint.freedesktop.org/) driver for the **EgisTec E
 (USB `1c7a:0577`) fingerprint sensor — the "Windows Hello only" reader on many laptops —
 so `fprintd`/PAM fingerprint login works on Linux.
 
-> **Read [Copyright & distribution](#copyright--distribution) before using this.** It's a
-> bring-your-own-copy tool, and the legal status is unsettled — this is not legal advice.
-
 ## Why the vendor matcher
 
 The EH577 is a tiny (70×57 px, ~6–8 ridges) image-out sensor. On a real lift-and-replace
