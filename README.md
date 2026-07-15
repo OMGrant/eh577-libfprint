@@ -38,26 +38,28 @@ Architecture, protocol, loader internals, the SELinux model, and Catalog sourcin
 
 ## Copyright & distribution
 
-**This project contains no EgisTec or Microsoft binaries and downloads nothing you don't
-already have the right to.** It's a tool that fetches *your own* copy of a driver you're
-licensed to run on *your own* device (the [b43-fwcutter] / [ttf-mscorefonts-installer]
-pattern) and adapts it locally to run on Linux.
+**This project contains no EgisTec or Microsoft binaries.** It's a tool that fetches *your
+own* copy of your device's driver from Microsoft's Update Catalog and adapts it locally to
+run on Linux. The loader and shims are ours (LGPL-2.1-or-later); it's an interoperability
+tool for a sensor **you own**, and it does not include or relicense any EgisTec code.
 
-**This is not legal advice, and the status of running — let alone publicly distributing — a
-tool that loads a proprietary Windows DLL on Linux is genuinely unsettled.** What the design
-does to stay on the defensible side:
+What the design does to **reduce** legal exposure — it does **not** eliminate it:
 
-- **Never redistributes the vendor DLL.** You download your own copy from Microsoft's
-  official Update Catalog; the adapted engine `.so` is built on your machine and never
-  leaves it.
-- **Uses the pre-SDCP 2019 build**, which carries no technological protection measure — so
-  nothing is circumvented (no DMCA §1201 question).
-- The local re-layout of a copy you own, to run it on your own machine "in no other manner,"
-  is the kind of adaptation **17 U.S.C. §117** contemplates for the owner of a copy.
+- **No redistribution of the DLL** — build-time fetch only, from Microsoft's official Update
+  Catalog (pinned update ID + SHA-256). The adapted engine `.so` is built on your machine and
+  never leaves it. (The [ttf-mscorefonts-installer] / [b43-fwcutter] model.)
+- **No DMCA §1201 circumvention** — it targets the **2019 pure-software Catalog build**: no
+  SDCP secure channel, no SGX enclave, so there is no technological protection measure to
+  circumvent.
+- **§117 posture** — a device owner adapting a program to run on their own hardware, used in
+  no other manner.
 
-What it does **not** resolve: the Microsoft Update Catalog's terms on automated download, and
-EgisTec's driver EULA. **You must own an EgisTec EH577 device, and you use this at your own
-risk.** Keep any fork blob-free (see below).
+**The honest caveat, because "clean" would be a lie:** this is **not legal advice** and the
+law here is **unsettled**. Running a vendor's Windows driver under a custom loader — and
+especially *publishing a tool that does* — is a genuine gray area. The steps above reduce
+exposure; they don't eliminate it, and the **Microsoft Update Catalog's terms** and
+**EgisTec's EULA** are yours to check. **Use at your own risk, and only with a sensor you
+own.** Keep any fork blob-free (see below).
 
 [b43-fwcutter]: https://packages.debian.org/stable/b43-fwcutter
 [ttf-mscorefonts-installer]: https://packages.debian.org/stable/ttf-mscorefonts-installer
