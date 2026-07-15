@@ -98,7 +98,7 @@ The vendor matcher is a Windows x64 DLL (`EgisTouchFPEngine0577.dll`, single exp
 
 - Map the PE's sections at their virtual addresses; set up a **fake Windows TEB in `%gs`**
   (glibc uses `%fs`, so `%gs` is free); run the static-CRT `DllMain`.
-- **~180 import shims** back kernel32/advapi32/shlwapi/user32/gdi32/gdiplus/setupapi with
+- **~190 import shims** (189 registered) back kernel32/advapi32/shlwapi/user32/gdi32/gdiplus/setupapi with
   native equivalents (heap → a tracked-idempotent allocator that tolerates the CRT's
   double-frees; `VirtualAlloc` → `mmap`; `CryptGenRandom` → `getrandom`; GDI/GdiPlus →
   well-behaved stubs for the debug-image path; etc.). A generic fallback catches anything

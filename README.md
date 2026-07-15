@@ -24,8 +24,9 @@ So this driver reuses EgisTec's own matcher — **without this project shipping 
 
 - **Capture** is fully native (no vendor code): the EGIS/SIGE bulk protocol, 70×57 frames.
 - **Matching** is delegated to the vendor engine DLL, loaded **in-process** by a small PE
-  loader (~180 import shims, fake TEB in `%gs`), running its `WbioQueryEngineInterface`
-  matcher on host, on plaintext frames.
+  loader (~190 import shims, fake TEB in `%gs`). The loader calls the DLL's
+  `WbioQueryEngineInterface` export to get the WBF engine vtable, then drives its
+  extract/verify slots (`AcceptSampleData`/`Verify`) on host, on plaintext frames.
 - **The engine runs file-backed**, so under SELinux it is `file execute` (a normal library
   permission), **not `execmem`**. `fprintd` stays fully confined — no execmem grant, no
   policy hole, no helper process. `/proc/PID/maps` shows the engine mapped `r-xp`, zero
