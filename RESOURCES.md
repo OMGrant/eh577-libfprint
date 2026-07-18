@@ -20,7 +20,7 @@ bring-up relied on:
   — the earlier community Linux driver effort for *this exact sensor* (EgisTec EH577,
   `1c7a:0577`), and our prior art. It mapped the non-secure raw-capture EGIS/SIGE protocol —
   read it for the device protocol. (Its "read budget / recycle-every-6-frames" recovery loop
-  was a misread of the undrained-frame gotcha; see [PORTING §9](PORTING.md#9-gotchas--dead-ends-this-is-where-our-wasted-weeks-went).)
+  was a misread of the undrained-frame gotcha; see [PORTING §9](PORTING.md#9-gotchas--dead-ends).)
   Same match-on-host shape as this driver; its Windows package ships the same
   `EgisTouchFPEngine0577.dll` engine adapter (no VBS enclave).
 

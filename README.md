@@ -58,7 +58,7 @@ include or relicense any EgisTec code.
 
 - An EgisTec EH577 (`1c7a:0577`) sensor **that you own**.
 - `curl`, `p7zip` (`7z`), `gcc`, `meson`/`ninja`, `git`, and libfprint build deps.
-  - Fedora: `sudo dnf install -y curl p7zip meson ninja-build git gcc && sudo dnf builddep -y libfprint`
+  - Fedora: `sudo dnf install -y curl p7zip meson ninja-build git gcc dnf-plugins-core && sudo dnf builddep -y libfprint`
   - Debian/Ubuntu: `sudo apt install curl p7zip-full meson ninja-build git build-essential && sudo apt build-dep libfprint`
 
 ## Install

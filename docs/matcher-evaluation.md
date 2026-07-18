@@ -150,7 +150,7 @@ on a sensor this small.
 
 \* The vendor number is a same-session offline sanity check on a small set, **not** an
 independently-validated FAR/FRR, and **not** the cross-session gauntlet above — see the vendor
-matcher's honesty note in [PORTING.md §2](../PORTING.md#2-why-the-vendor-matcher-the-part-people-will-push-back-on).
+matcher's honesty note in [PORTING.md §2](../PORTING.md#2-why-the-vendor-matcher).
 
 **Conclusion:** no generic open matcher clears the wall at 70×57 — the same wall that drove the
 sibling FT9201 driver to the vendor matcher too. The open route that *could* work is a

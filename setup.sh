@@ -24,7 +24,7 @@ miss=""
 for t in curl 7z gcc meson ninja git sha256sum; do command -v "$t" >/dev/null || miss="$miss $t"; done
 if [ -n "$miss" ]; then
   echo "!! missing tools:$miss"
-  echo "   Fedora: sudo dnf install -y curl p7zip meson ninja-build git gcc && sudo dnf builddep -y libfprint"
+  echo "   Fedora: sudo dnf install -y curl p7zip meson ninja-build git gcc dnf-plugins-core && sudo dnf builddep -y libfprint"
   echo "   (Debian/Ubuntu: apt install curl p7zip-full meson ninja-build git build-essential; apt build-dep libfprint)"
   exit 1
 fi
