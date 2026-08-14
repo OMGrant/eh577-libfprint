@@ -58,8 +58,10 @@ include or relicense any EgisTec code.
 
 - An EgisTec EH577 (`1c7a:0577`) sensor **that you own**.
 - `curl`, `p7zip` (`7z`), `gcc`, `meson`/`ninja`, `git`, and libfprint build deps.
-  - Fedora: `sudo dnf install -y curl p7zip meson ninja-build git gcc dnf-plugins-core && sudo dnf builddep -y libfprint`
-  - Debian/Ubuntu: `sudo apt install curl p7zip-full meson ninja-build git build-essential && sudo apt build-dep libfprint`
+  - Fedora: `sudo dnf install -y curl p7zip meson ninja-build git gcc dnf-plugins-core libusb1-devel nss-devel nspr-devel libgudev-devel libgusb-devel pixman-devel && { sudo dnf builddep -y libfprint || true; }`
+    - Fedora *spins/remixes* (Nobara, etc.) often don't enable the libfprint **source** repo, so `dnf builddep libfprint` installs nothing and meson then fails on `gusb`. The explicit `-devel` list covers the actual build deps; `builddep` is best-effort on top of it. (`-Dintrospection=false`, so `gobject-introspection-devel` isn't needed.)
+  - Debian/Ubuntu: `sudo apt install -y curl p7zip-full meson ninja-build git build-essential libusb-1.0-0-dev libnss3-dev libgusb-dev libgudev-1.0-dev libpixman-1-dev libglib2.0-dev && { sudo apt build-dep -y libfprint || true; }`
+    - Same idea as the Fedora note: `apt build-dep libfprint` needs `deb-src` entries enabled (off by default on modern Ubuntu), so the explicit `-dev` list is what actually satisfies meson; `build-dep` is best-effort on top.
 
 ## Install
 
