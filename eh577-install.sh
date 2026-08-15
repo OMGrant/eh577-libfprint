@@ -16,9 +16,24 @@ ENGINE_DST=/usr/lib/libfprint-2/eh577-engine.so
 SO="$PWD/libfprint/build/libfprint/libfprint-2.so.2.0.0"
 RULE=/etc/udev/rules.d/60-eh577.rules
 
+# SELinux detection: active only if the SELinux fs is mounted, enforcement is not
+# 'Disabled', AND the policy tooling (semanage/restorecon) is installed.
+# Arch/Ubuntu (AppArmor) and minimal Fedora installs will report SELINUX=0 and
+# skip the fcontext labeling steps entirely.
+SELINUX=0
+if [ -d /sys/fs/selinux ] \
+   && command -v getenforce >/dev/null 2>&1 \
+   && [ "$(getenforce 2>/dev/null || echo Disabled)" != "Disabled" ] \
+   && command -v semanage >/dev/null 2>&1; then
+  SELINUX=1
+fi
+
 if [ "${1:-}" = "--uninstall" ]; then
   [ "$(id -u)" = 0 ] || { echo "run with sudo"; exit 1; }
-  semanage fcontext -d "${ENGINE_DST//./\\.}" 2>/dev/null || true
+  if [ "$SELINUX" = 1 ]; then
+    semanage fcontext -d "${ENGINE_DST//./\\.}" 2>/dev/null || true
+    restorecon -R "$(dirname "$ENGINE_DST")" 2>/dev/null || true
+  fi
   rm -rf "$DEST"; rm -f "$DROPIN" "$ENGINE_DST" "$RULE"
   systemctl daemon-reload || true; systemctl restart fprintd 2>/dev/null || true
   udevadm control --reload-rules || true
@@ -35,17 +50,23 @@ echo "==> installing EH577-enabled libfprint to $DEST (distro libfprint untouche
 install -d "$DEST"
 install -m0755 "$SO" "$DEST/libfprint-2.so.2.0.0"
 ln -sf libfprint-2.so.2.0.0 "$DEST/libfprint-2.so.2"
-restorecon -RF "$DEST" 2>/dev/null || true   # ensure our libfprint is lib_t (executable by fprintd_t)
-echo "    our libfprint label: $(ls -Z "$DEST/libfprint-2.so.2.0.0" | awk '{print $1}')"
+if [ "$SELINUX" = 1 ]; then
+  restorecon -RF "$DEST" 2>/dev/null || true   # ensure our libfprint is lib_t (executable by fprintd_t)
+  echo "    our libfprint label: $(ls -Z "$DEST/libfprint-2.so.2.0.0" | awk '{print $1}')"
+fi
 
 echo "==> installing the vendor matcher as a native .so (self-contained, no DLL deployed)"
 install -Dm0755 "$ENGINE_SRC" "$ENGINE_DST"
 
-echo "==> SELinux: label the engine .so a shared-library type => fprintd runs it via 'file execute', NOT execmem"
-semanage fcontext -a -t textrel_shlib_t "${ENGINE_DST//./\\.}" 2>/dev/null \
-  || semanage fcontext -m -t textrel_shlib_t "${ENGINE_DST//./\\.}"
-restorecon -v "$ENGINE_DST"
-echo "    label now: $(ls -Z "$ENGINE_DST" | awk '{print $1}')"
+if [ "$SELINUX" = 1 ]; then
+  echo "==> SELinux: label the engine .so a shared-library type => fprintd runs it via 'file execute', NOT execmem"
+  semanage fcontext -a -t textrel_shlib_t "${ENGINE_DST//./\\.}" 2>/dev/null \
+    || semanage fcontext -m -t textrel_shlib_t "${ENGINE_DST//./\\.}"
+  restorecon -v "$ENGINE_DST"
+  echo "    label now: $(ls -Z "$ENGINE_DST" | awk '{print $1}')"
+else
+  echo "==> SELinux not active (or semanage missing): skipping fcontext labeling"
+fi
 
 echo "==> udev rule (device access for fprintd + desktop user)"
 cat > "$RULE" <<'EOF'
