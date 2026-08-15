@@ -145,7 +145,10 @@ init_ssm_run_state (FpiSsm *ssm, FpDevice *dev)
 
   if (g_cancellable_is_cancelled (fpi_device_get_cancellable (dev)))
     {
-      fpi_ssm_mark_completed (ssm);
+      /* Propagate the cancellation instead of silently completing: a silent
+       * completion would report open success while the action was cancelled. */
+      fpi_ssm_mark_failed (ssm,
+        g_error_new (G_IO_ERROR, G_IO_ERROR_CANCELLED, "Operation cancelled"));
       return;
     }
 
@@ -238,7 +241,14 @@ scan_ssm_run_state (FpiSsm *ssm, FpDevice *dev)
 
   if (g_cancellable_is_cancelled (fpi_device_get_cancellable (dev)))
     {
-      fpi_ssm_mark_completed (ssm);
+      /* CRITICAL: end the operation with the cancellation error. A plain
+       * mark_completed() here would make scan_ssm_complete() treat the cancel
+       * as "no finger" and call start_scan() again — but the cancellable stays
+       * cancelled, so every replacement SSM immediately completes again,
+       * recursing synchronously (scan_ssm_complete -> start_scan -> run_state
+       * -> mark_completed -> ...) until the stack overflows (SEGV). */
+      fpi_ssm_mark_failed (ssm,
+        g_error_new (G_IO_ERROR, G_IO_ERROR_CANCELLED, "Operation cancelled"));
       return;
     }
 
@@ -304,6 +314,19 @@ scan_ssm_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
         fpi_device_verify_complete (dev, error);
       else
         fpi_device_enroll_complete (dev, NULL, error);
+      return;
+    }
+
+  /* Belt-and-suspenders: never restart the poll loop while the operation is
+   * cancelled (the SSM error path above should already have caught this). */
+  if (g_cancellable_is_cancelled (fpi_device_get_cancellable (dev)))
+    {
+      GError *e = g_error_new (G_IO_ERROR, G_IO_ERROR_CANCELLED,
+                               "Operation cancelled");
+      if (self->is_verify)
+        fpi_device_verify_complete (dev, e);
+      else
+        fpi_device_enroll_complete (dev, NULL, e);
       return;
     }
 
